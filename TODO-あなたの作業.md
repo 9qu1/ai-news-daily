@@ -13,9 +13,9 @@
   - Name: `BLUESKY_HANDLE` / Secret: `ainews1.bsky.social`
   - Name: `BLUESKY_APP_PASSWORD` / Secret: 上のアプリパスワード
 
-### 2. Threads自動投稿の設定(無料・約30分)
+### 2. Threads自動投稿の設定 — ✅ 完了(@ainews111 で稼働中)
 
-ThreadsはMetaの無料APIで自動投稿できます。手順は多めですが全部無料で、一度設定すれば期限延長も自動です。
+2026-07-22に設定完了。毎朝の記事生成後に自動投稿されます(トークンの60日期限も自動延長)。以下の手順は記録として残します。
 
 1. **Instagramアカウント作成**(Threadsの土台。個人アカウントのままでOK、ビジネス切替は不要)
 2. **threads.com** にそのInstagramアカウントでログインしてThreadsプロフィールを作成
