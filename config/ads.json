@@ -1,6 +1,7 @@
 {
-  "_readme": "ASP(もしもアフィリエイト・A8.netなど)で発行した広告コード(HTML)を下の枠に貼り付けてpushすると、全ページに自動反映されます。空文字のままなら何も表示されません。",
-  "article_top": "",
-  "article_bottom": "",
-  "footer_banner": ""
+  "_readme": "ASPの広告コード置き場。article_top/article_bottom/footer_banner が全ページに自動反映される。_spare_banner は未使用の予備(差し替え用)。",
+  "article_top": "<a href=\"https://px.a8.net/svt/ejp?a8mat=4B86H1+7X6NJM+50+2HDT1U\" rel=\"nofollow\">あなたのサイトのURL、そろそろスリムにしませんか？</a>\n<img border=\"0\" width=\"1\" height=\"1\" src=\"https://www13.a8.net/0.gif?a8mat=4B86H1+7X6NJM+50+2HDT1U\" alt=\"\">",
+  "article_bottom": "<a href=\"https://px.a8.net/svt/ejp?a8mat=4B86H1+B5A6IA+5W1M+NTZCH\" rel=\"nofollow\">\n<img border=\"0\" width=\"300\" height=\"250\" alt=\"\" src=\"https://www29.a8.net/svt/bgt?aid=260722117674&wid=001&eno=01&mid=s00000027481004003000&mc=1\"></a>\n<img border=\"0\" width=\"1\" height=\"1\" src=\"https://www11.a8.net/0.gif?a8mat=4B86H1+B5A6IA+5W1M+NTZCH\" alt=\"\">",
+  "footer_banner": "<a href=\"https://px.a8.net/svt/ejp?a8mat=4B86H1+AP7H6A+5W1M+BXB8X\" rel=\"nofollow\">\n<img border=\"0\" width=\"300\" height=\"250\" alt=\"\" src=\"https://www21.a8.net/svt/bgt?aid=260722117647&wid=001&eno=01&mid=s00000027481002003000&mc=1\"></a>\n<img border=\"0\" width=\"1\" height=\"1\" src=\"https://www19.a8.net/0.gif?a8mat=4B86H1+AP7H6A+5W1M+BXB8X\" alt=\"\">",
+  "_spare_banner": "<a href=\"https://px.a8.net/svt/ejp?a8mat=4B86H1+C4ER76+50+7RY0N5\" rel=\"nofollow\">\n<img border=\"0\" width=\"300\" height=\"250\" alt=\"\" src=\"https://www28.a8.net/svt/bgt?aid=260722117733&wid=001&eno=01&mid=s00000000018047020000&mc=1\"></a>\n<img border=\"0\" width=\"1\" height=\"1\" src=\"https://www11.a8.net/0.gif?a8mat=4B86H1+C4ER76+50+7RY0N5\" alt=\"\">"
 }
