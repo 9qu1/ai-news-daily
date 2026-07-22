@@ -5,13 +5,13 @@
 
 ## 今週中にやると効果が大きいもの
 
-### 1. Bluesky自動投稿の設定(無料・あと3分) — 残りはSecrets登録だけ
+### 1. Bluesky自動投稿の設定(無料・あと1分) — 方式変更: ローカルの .secrets.json に貼る
+
+※GitHub Actions経由の投稿は文字化け問題があったため、Threadsと同じローカル実行方式に変更しました(2026-07-22)。以前GitHubに登録したSecrets(BLUESKY_HANDLE/BLUESKY_APP_PASSWORD)はもう使われないので、削除しておくとよりきれいです(急ぎません)。
 
 - [x] アカウント作成済み: @ainews1.bsky.social
-- [ ] https://bsky.app/settings/app-passwords で「アプリパスワードを追加」→ 表示された `xxxx-xxxx-xxxx-xxxx` をコピー(本パスワードは使わない)
-- [ ] https://github.com/9qu1/ai-news-daily/settings/secrets/actions で「New repository secret」を2回:
-  - Name: `BLUESKY_HANDLE` / Secret: `ainews1.bsky.social`
-  - Name: `BLUESKY_APP_PASSWORD` / Secret: 上のアプリパスワード
+- [ ] https://bsky.app/settings/app-passwords で「アプリパスワードを追加」(前のを控えていない場合は新規作成でOK・複数共存できます)
+- [ ] `C:\Claude\ai-news-daily\.secrets.json` の `"appPassword"` にアプリパスワードを貼って保存
 
 ### 2. Threads自動投稿の設定 — ✅ 完了(@ainews111 で稼働中)
 

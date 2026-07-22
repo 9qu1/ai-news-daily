@@ -1,22 +1,53 @@
-// 新着記事をBlueskyに自動投稿する (GitHub Actionsから呼ばれる)
-// 使い方: node scripts/post-bluesky.mjs articles/2026-07-22-daily.md
-// 必要な環境変数: BLUESKY_HANDLE (例: ainews.bsky.social), BLUESKY_APP_PASSWORD (アプリパスワード)
+// 新着記事をBlueskyに自動投稿する (ローカルのスケジュール実行から呼ばれる)
+// 使い方: node scripts/post-bluesky.mjs articles/2026-07-23-daily.md
+//         node scripts/post-bluesky.mjs --delete <rkey>   … 投稿の削除(緊急用)
+// 認証情報は .secrets.json の bluesky.handle / bluesky.appPassword を読む
+// (環境変数 BLUESKY_HANDLE / BLUESKY_APP_PASSWORD があればそちらを優先)。
 // 未設定なら何もせず正常終了する。
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const HANDLE = process.env.BLUESKY_HANDLE;
-const APP_PASSWORD = process.env.BLUESKY_APP_PASSWORD;
-if (!HANDLE || !APP_PASSWORD) {
-  console.log('BLUESKY_HANDLE / BLUESKY_APP_PASSWORD 未設定のため投稿をスキップします');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const SECRETS_PATH = join(ROOT, '.secrets.json');
+
+let HANDLE = process.env.BLUESKY_HANDLE;
+let APP_PASSWORD = process.env.BLUESKY_APP_PASSWORD;
+if ((!HANDLE || !APP_PASSWORD) && existsSync(SECRETS_PATH)) {
+  const s = JSON.parse(readFileSync(SECRETS_PATH, 'utf8')).bluesky || {};
+  HANDLE = HANDLE || s.handle;
+  APP_PASSWORD = APP_PASSWORD || s.appPassword;
+}
+if (!HANDLE || !APP_PASSWORD || /ここに/.test(String(APP_PASSWORD))) {
+  console.log('Bluesky認証情報が未設定のため投稿をスキップします');
   process.exit(0);
 }
 
+const api = 'https://bsky.social/xrpc';
+const session = await fetch(`${api}/com.atproto.server.createSession`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ identifier: HANDLE, password: APP_PASSWORD }),
+}).then(r => { if (!r.ok) throw new Error(`ログイン失敗: ${r.status}`); return r.json(); });
+
+// ---- 削除モード ----
+if (process.argv[2] === '--delete') {
+  const rkey = process.argv[3];
+  if (!rkey) { console.error('rkeyを指定してください'); process.exit(1); }
+  const res = await fetch(`${api}/com.atproto.repo.deleteRecord`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${session.accessJwt}` },
+    body: JSON.stringify({ repo: session.did, collection: 'app.bsky.feed.post', rkey }),
+  });
+  if (!res.ok) throw new Error(`削除失敗: ${res.status}`);
+  console.log(`✅ 投稿 ${rkey} を削除しました`);
+  process.exit(0);
+}
+
+// ---- 投稿モード ----
 const mdPath = process.argv[2];
 if (!mdPath) { console.error('記事ファイルを指定してください'); process.exit(1); }
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const site = JSON.parse(readFileSync(join(ROOT, 'config', 'site.json'), 'utf8'));
 const raw = readFileSync(join(ROOT, mdPath), 'utf8');
 const fm = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -48,13 +79,6 @@ const facets = [
   { index: byteIndex('#AIニュース'), features: [{ $type: 'app.bsky.richtext.facet#tag', tag: 'AIニュース' }] },
 ];
 
-const api = 'https://bsky.social/xrpc';
-const session = await fetch(`${api}/com.atproto.server.createSession`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ identifier: HANDLE, password: APP_PASSWORD }),
-}).then(r => { if (!r.ok) throw new Error(`ログイン失敗: ${r.status}`); return r.json(); });
-
 const res = await fetch(`${api}/com.atproto.repo.createRecord`, {
   method: 'POST',
   headers: { 'content-type': 'application/json', authorization: `Bearer ${session.accessJwt}` },
@@ -71,4 +95,5 @@ const res = await fetch(`${api}/com.atproto.repo.createRecord`, {
   }),
 }).then(r => { if (!r.ok) throw new Error(`投稿失敗: ${r.status}`); return r.json(); });
 
-console.log(`✅ Blueskyに投稿しました: ${res.uri}`);
+const rkey = res.uri.split('/').pop();
+console.log(`✅ Blueskyに投稿しました: https://bsky.app/profile/${HANDLE}/post/${rkey}`);
