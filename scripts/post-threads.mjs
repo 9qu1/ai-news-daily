@@ -47,13 +47,18 @@ async function ensureToken() {
   } catch (e) {
     if (t.appSecret && !/ここに/.test(t.appSecret)) {
       // 短期トークンが貼られた初回: 長期トークンに交換する
-      const j = await get(`${API}/access_token?grant_type=th_exchange_token&client_secret=${t.appSecret}&access_token=${t.token}`);
-      t.token = j.access_token;
-      t.refreshedAt = new Date().toISOString();
-      save();
-      console.log('短期トークンを長期トークン(60日)に交換しました');
+      try {
+        const j = await get(`${API}/access_token?grant_type=th_exchange_token&client_secret=${t.appSecret}&access_token=${t.token}`);
+        t.token = j.access_token;
+        t.refreshedAt = new Date().toISOString();
+        save();
+        console.log('短期トークンを長期トークン(60日)に交換しました');
+      } catch {
+        // 発行直後(24時間未満)の長期トークンは延長も交換もできないが、投稿には使える
+        if (!t.refreshedAt) console.log('トークンをそのまま使用します(延長は後日自動実行)');
+        else throw e;
+      }
     } else if (!t.refreshedAt) {
-      // 発行直後(24時間未満)の長期トークンは延長できないが投稿には使える
       console.log('トークン延長は24時間経過後に自動実行します');
     } else {
       throw e;
@@ -107,4 +112,9 @@ try {
   await new Promise(res => setTimeout(res, 5000)); // 処理待ちで失敗することがあるため1回だけ再試行
   published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
 }
-console.log(`✅ Threadsに投稿しました: media_id=${published.id}`);
+try {
+  const info = await get(`${API}/v1.0/${published.id}?fields=permalink&access_token=${t.token}`);
+  console.log(`✅ Threadsに投稿しました: ${info.permalink}`);
+} catch {
+  console.log(`✅ Threadsに投稿しました: media_id=${published.id}`);
+}
