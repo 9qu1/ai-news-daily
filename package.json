@@ -1,0 +1,14 @@
+{
+  "name": "ai-news-daily",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AIデイリー — 毎日5分でわかるAIニュース(自動更新静的サイト)",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "marked": "^16.0.0"
+  }
+}

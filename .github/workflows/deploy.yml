@@ -1,0 +1,68 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  announce:
+    # 新しく追加された記事があればBlueskyに自動投稿する(シークレット未設定ならスキップ)
+    needs: deploy
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+      BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Post new articles to Bluesky
+        run: |
+          if ! git rev-parse HEAD^ >/dev/null 2>&1; then
+            echo "初回コミットのためスキップ"; exit 0
+          fi
+          NEW=$(git diff --name-only --diff-filter=A HEAD^ HEAD -- 'articles/*.md')
+          if [ -z "$NEW" ]; then
+            echo "新着記事なし"; exit 0
+          fi
+          for f in $NEW; do
+            echo "posting: $f"
+            node scripts/post-bluesky.mjs "$f"
+          done
