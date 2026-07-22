@@ -29,7 +29,8 @@
 | `build.js` | 静的サイトジェネレーター(Node + marked) |
 | `src/styles.css` | サイトデザイン(ライト/ダーク対応) |
 | `scripts/serve.mjs` | ローカルプレビュー(ポート4500) |
-| `scripts/post-bluesky.mjs` | Bluesky自動投稿(要シークレット設定) |
+| `scripts/post-bluesky.mjs` | Bluesky自動投稿(GitHub Actions・要Secrets設定) |
+| `scripts/post-threads.mjs` | Threads自動投稿(ローカル実行・要.secrets.json・トークン延長自動) |
 | `.github/workflows/deploy.yml` | ビルド→Pages公開→Bluesky告知 |
 
 ## コマンド

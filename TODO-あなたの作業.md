@@ -5,53 +5,75 @@
 
 ## 今週中にやると効果が大きいもの
 
-### 1. Blueskyアカウント作成(無料・5分) — 新着記事の自動告知用
+### 1. Bluesky自動投稿の設定(無料・あと3分) — 残りはSecrets登録だけ
 
-1. https://bsky.app でアカウント作成(メールアドレスだけでOK)
-2. 設定 → 「アプリパスワード」→ 新規作成(名前は `ainews` など)。表示された `xxxx-xxxx-xxxx-xxxx` をメモ
-3. GitHubのリポジトリ https://github.com/9qu1/ai-news-daily → Settings → Secrets and variables → Actions → New repository secret で以下の2つを登録
-   - `BLUESKY_HANDLE`: あなたのハンドル(例: `ainews.bsky.social`)
-   - `BLUESKY_APP_PASSWORD`: 手順2のアプリパスワード
-4. 以後、新しい記事が公開されるたびに自動でBlueskyに投稿されます
+- [x] アカウント作成済み: @ainews1.bsky.social
+- [ ] https://bsky.app/settings/app-passwords で「アプリパスワードを追加」→ 表示された `xxxx-xxxx-xxxx-xxxx` をコピー(本パスワードは使わない)
+- [ ] https://github.com/9qu1/ai-news-daily/settings/secrets/actions で「New repository secret」を2回:
+  - Name: `BLUESKY_HANDLE` / Secret: `ainews1.bsky.social`
+  - Name: `BLUESKY_APP_PASSWORD` / Secret: 上のアプリパスワード
 
-※本パスワードではなく必ず「アプリパスワード」を使ってください。
+### 2. Threads自動投稿の設定(無料・約30分)
 
-### 2. もしもアフィリエイト登録(無料) — 収益の柱その1
+ThreadsはMetaの無料APIで自動投稿できます。手順は多めですが全部無料で、一度設定すれば期限延長も自動です。
+
+1. **Instagramアカウント作成**(Threadsの土台。個人アカウントのままでOK、ビジネス切替は不要)
+2. **threads.com** にそのInstagramアカウントでログインしてThreadsプロフィールを作成
+3. https://developers.facebook.com/ でMeta開発者登録(Facebookアカウントが必要)
+4. 「マイアプリ」→「アプリを作成」→ ユースケースは「**Threads APIにアクセス**」を選択 → アプリ名は `ainews-poster` など適当でOK
+5. アプリの画面 → 左メニューの「Threads API」→ **テスター(Threads Testers)にあなたのThreadsユーザー名を追加**
+6. threads.com → 設定 → アカウント → **「ウェブサイトの権限」で招待を承認**
+7. アプリの「Threads API」画面で**アクセストークンを生成**してコピー
+8. アプリの 設定 → ベーシック で **app secret(アプリシークレット)** を表示してコピー
+9. `C:\Claude\ai-news-daily\.secrets.example.json` を**同じ場所に `.secrets.json` という名前でコピー**し、メモ帳で開いて `token` と `appSecret` に貼り付けて保存
+
+→ 以後、毎朝の記事生成後に自動でThreadsにも投稿されます。**トークンやシークレットはこのPCの外に出ません**(GitHubにはアップロードされない設定済み)。チャットに貼る必要もありません。
+
+### 3. もしもアフィリエイト登録(無料) — 収益の柱その1
 
 1. https://af.moshimo.com/ で会員登録
 2. 「サイト追加」で本サイトのURL(https://9qu1.github.io/ai-news-daily/)を登録
 3. 審査通過後、「AI」「プログラミングスクール」「レンタルサーバー」「書籍」などで案件を検索して提携申請
 4. 発行された広告コード(HTML)をClaudeに渡す → `config/ads.json` に設定して全記事に自動反映します
 
-### 3. A8.net登録(無料) — 収益の柱その2
+### 4. A8.net登録(無料) — 収益の柱その2
 
 1. https://www.a8.net/ でメディア会員登録(サイトURLは上と同じ)
 2. AI関連(オンライン講座、ツール、サーバー等)の案件に提携申請
 3. 広告コードをClaudeに渡す
 
-## 余裕があればやるもの
+## 検討して決めるもの
 
-### 4. X(Twitter)アカウント作成 — 手動シェア用(任意)
+### 5. X(Twitter)自動投稿 — 無料では不可(2026年2月にAPI無料枠廃止)
 
-X APIの無料枠は廃止されたため自動投稿はしませんが、アカウントがあれば各記事の「シェアボタン」から手動で1タップ投稿できます。プロフィールにサイトURLを載せておくと導線になります。
+自動投稿するなら従量課金のAPI利用が必要です:
+- リンクなし投稿(プロフィールにサイトURL): 月約$0.45(約70円)
+- リンク付き投稿: 1件$0.20 → 月約$6(約900円)
 
-### 5. はてなブログ開設(任意) — 集客チャネル追加
+やる場合は developer.x.com での開発者登録+クレジット購入が必要です(希望するならClaudeに伝えてください。スクリプトはこちらで用意します)。やらない場合も、アカウントを作ってプロフィールにサイトURLを載せ、記事のシェアボタンから手動投稿する運用は無料でできます。
+※ブラウザ自動操作での投稿は規約違反でアカウント凍結リスクがあるため行いません。
+
+### 6. Instagram自動投稿 — 可能だが優先度低(推奨: 後回し)
+
+画像投稿のみ・キャプションのリンクはクリック不可のため、ニュースサイトの集客効果は限定的です。やる場合はプロアカウント化+Facebookページ+毎日のニュース画像自動生成が必要になります。Threadsが軌道に乗ってから、同じMetaアプリに追加する形で検討しましょう(その時はClaudeが画像の自動生成も組みます)。
+
+### 7. はてなブログ開設(任意) — 集客チャネル追加
 
 無料プランでOK。開設したらIDをClaudeに伝えてください。記事の転載(カノニカル付き)を自動化するか一緒に検討します。
 
 ## 1〜2ヶ月後(記事が30本くらい溜まったら)
 
-### 6. 独自ドメイン取得(年1,000〜1,500円程度) — AdSenseへの入場券
+### 8. 独自ドメイン取得(年1,000〜1,500円程度) — AdSenseへの入場券
 
 - 例: Cloudflare Registrar、お名前.com、Xserverドメインなどで `.com` を取得
 - 取得したらClaudeに伝えてください → GitHub PagesのDNS設定・サイト側の変更は全部こちらでやります
 
-### 7. Google AdSense申請 — 収益の柱その3
+### 9. Google AdSense申請 — 収益の柱その3
 
 - 独自ドメイン設定済み+記事30本以上になったタイミングで申請するのがおすすめ
 - 申請用のコード設置もこちらで対応します
 
-### 8. Googleサーチコンソール登録(無料)
+### 10. Googleサーチコンソール登録(無料)
 
 - 検索からの流入を増やすための必須ツール。ドメイン取得と同時期でOK
 - https://search.google.com/search-console で登録 → 確認用metaタグをClaudeに渡してください

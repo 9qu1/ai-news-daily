@@ -57,3 +57,4 @@ tags: カンマ区切りのタグ
 - ビルド: `npm run build` → `dist/` に出力
 - プレビュー: `node scripts/serve.mjs` → http://localhost:4500
 - 公開: mainにpushするとGitHub ActionsがビルドしてGitHub Pagesへデプロイし、新着記事があればBlueskyに自動投稿する(シークレット設定時のみ)
+- Threads投稿: ローカルで `node scripts/post-threads.mjs articles/<ファイル名>` (.secrets.json未設定ならスキップ。トークン延長は自動)
