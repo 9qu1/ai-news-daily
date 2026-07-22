@@ -60,40 +60,53 @@ if (fm) for (const line of fm[1].split(/\r?\n/)) {
 const slug = basename(mdPath).replace(/\.md$/, '');
 const url = `${site.url}/${slug}.html`;
 const title = meta.title || slug;
-let desc = meta.description || '';
 
-// Blueskyは300グラフェム制限。全体が280に収まるよう説明文を切り詰める
-const fixed = `【${title}】\n\n\n#AIニュース\n${url}`.length;
-const maxDesc = Math.max(0, 280 - fixed);
-if (desc.length > maxDesc) desc = desc.slice(0, Math.max(0, maxDesc - 1)) + '…';
-const text = `【${title}】\n\n${desc}\n#AIニュース\n${url}`;
+// 投稿文: <記事名>.sns.json (ペルソナ文体・日英) があればそれを使い、無ければタイトル+説明文
+const posts = [];
+const sidecarPath = join(ROOT, mdPath.replace(/\.md$/, '.sns.json'));
+if (existsSync(sidecarPath)) {
+  const s = JSON.parse(readFileSync(sidecarPath, 'utf8'));
+  if (s.ja) posts.push({ body: s.ja, lang: 'ja' });
+  if (s.en) posts.push({ body: s.en, lang: 'en' });
+}
+if (!posts.length) {
+  let desc = meta.description || '';
+  const fixed = `【${title}】\n\n\n#AIニュース`.length;
+  if (desc.length > 240 - fixed) desc = desc.slice(0, 239 - fixed) + '…';
+  posts.push({ body: `【${title}】\n\n${desc}\n#AIニュース`, lang: 'ja' });
+}
 
-// リンクとハッシュタグをリッチテキスト(facet)にする
+// 本文+URLをfacet(リンク・ハッシュタグ)つきで投稿する。300グラフェム制限に収める
 const enc = new TextEncoder();
-const byteIndex = (sub) => {
-  const at = text.indexOf(sub);
-  return { byteStart: enc.encode(text.slice(0, at)).length, byteEnd: enc.encode(text.slice(0, at)).length + enc.encode(sub).length };
-};
-const facets = [
-  { index: byteIndex(url), features: [{ $type: 'app.bsky.richtext.facet#link', uri: url }] },
-  { index: byteIndex('#AIニュース'), features: [{ $type: 'app.bsky.richtext.facet#tag', tag: 'AIニュース' }] },
-];
-
-const res = await fetch(`${api}/com.atproto.repo.createRecord`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/json', authorization: `Bearer ${session.accessJwt}` },
-  body: JSON.stringify({
-    repo: session.did,
-    collection: 'app.bsky.feed.post',
-    record: {
-      $type: 'app.bsky.feed.post',
-      text,
-      facets,
-      langs: ['ja'],
-      createdAt: new Date().toISOString(),
-    },
-  }),
-}).then(r => { if (!r.ok) throw new Error(`投稿失敗: ${r.status}`); return r.json(); });
-
-const rkey = res.uri.split('/').pop();
-console.log(`✅ Blueskyに投稿しました: https://bsky.app/profile/${HANDLE}/post/${rkey}`);
+for (const p of posts) {
+  let body = p.body.trim();
+  const budget = 292 - [...url].length; // URL+改行ぶんを差し引いた本文上限
+  if ([...body].length > budget) body = [...body].slice(0, budget - 1).join('') + '…';
+  const text = `${body}\n${url}`;
+  const byteRange = (start, sub) => ({
+    byteStart: enc.encode(text.slice(0, start)).length,
+    byteEnd: enc.encode(text.slice(0, start)).length + enc.encode(sub).length,
+  });
+  const facets = [{ index: byteRange(text.lastIndexOf(url), url), features: [{ $type: 'app.bsky.richtext.facet#link', uri: url }] }];
+  for (const m of body.matchAll(/#[^\s#.,!?()【】「」』『]+/g)) {
+    facets.push({ index: byteRange(m.index, m[0]), features: [{ $type: 'app.bsky.richtext.facet#tag', tag: m[0].slice(1) }] });
+  }
+  const res = await fetch(`${api}/com.atproto.repo.createRecord`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${session.accessJwt}` },
+    body: JSON.stringify({
+      repo: session.did,
+      collection: 'app.bsky.feed.post',
+      record: {
+        $type: 'app.bsky.feed.post',
+        text,
+        facets,
+        langs: [p.lang],
+        createdAt: new Date().toISOString(),
+      },
+    }),
+  }).then(r => { if (!r.ok) throw new Error(`投稿失敗(${p.lang}): ${r.status}`); return r.json(); });
+  const rkey = res.uri.split('/').pop();
+  console.log(`✅ Blueskyに投稿しました(${p.lang}): https://bsky.app/profile/${HANDLE}/post/${rkey}`);
+  await new Promise(r => setTimeout(r, 2000));
+}

@@ -87,10 +87,21 @@ if (fm) for (const line of fm[1].split(/\r?\n/)) {
 }
 const slug = basename(mdPath).replace(/\.md$/, '');
 const url = `${site.url}/${slug}.html`;
-let desc = meta.description || '';
-const fixedLen = `【${meta.title}】\n\n\n${url}`.length;
-if (fixedLen + desc.length > 480) desc = desc.slice(0, Math.max(0, 480 - fixedLen - 1)) + '…';
-const text = `【${meta.title}】\n\n${desc}\n${url}`;
+
+// 投稿文: <記事名>.sns.json (ペルソナ文体・日英) があればそれを使い、無ければタイトル+説明文
+const posts = [];
+const sidecarPath = join(ROOT, mdPath.replace(/\.md$/, '.sns.json'));
+if (existsSync(sidecarPath)) {
+  const s = JSON.parse(readFileSync(sidecarPath, 'utf8'));
+  if (s.ja) posts.push({ body: s.ja, lang: 'ja' });
+  if (s.en) posts.push({ body: s.en, lang: 'en' });
+}
+if (!posts.length) {
+  let desc = meta.description || '';
+  const fixedLen = `【${meta.title}】\n\n`.length;
+  if (fixedLen + desc.length > 440) desc = desc.slice(0, 439 - fixedLen) + '…';
+  posts.push({ body: `【${meta.title}】\n\n${desc}`, lang: 'ja' });
+}
 
 // ---- 投稿(コンテナ作成 → 公開) ----
 const post = async (path, params) => {
@@ -104,17 +115,23 @@ const post = async (path, params) => {
   return j;
 };
 
-const container = await post(`${t.userId}/threads`, { media_type: 'TEXT', text });
-let published;
-try {
-  published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
-} catch {
-  await new Promise(res => setTimeout(res, 5000)); // 処理待ちで失敗することがあるため1回だけ再試行
-  published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
-}
-try {
-  const info = await get(`${API}/v1.0/${published.id}?fields=permalink&access_token=${t.token}`);
-  console.log(`✅ Threadsに投稿しました: ${info.permalink}`);
-} catch {
-  console.log(`✅ Threadsに投稿しました: media_id=${published.id}`);
+for (const p of posts) {
+  let body = p.body.trim();
+  if ([...body].length > 440) body = [...body].slice(0, 439).join('') + '…';
+  const text = `${body}\n${url}`;
+  const container = await post(`${t.userId}/threads`, { media_type: 'TEXT', text });
+  let published;
+  try {
+    published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
+  } catch {
+    await new Promise(res => setTimeout(res, 5000)); // 処理待ちで失敗することがあるため1回だけ再試行
+    published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
+  }
+  try {
+    const info = await get(`${API}/v1.0/${published.id}?fields=permalink&access_token=${t.token}`);
+    console.log(`✅ Threadsに投稿しました(${p.lang}): ${info.permalink}`);
+  } catch {
+    console.log(`✅ Threadsに投稿しました(${p.lang}): media_id=${published.id}`);
+  }
+  await new Promise(r => setTimeout(r, 3000));
 }

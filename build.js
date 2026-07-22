@@ -112,7 +112,7 @@ ${body}
 <footer class="site-footer">
   <div class="wrap">
     ${adSlot(ads.footer_banner)}
-    <p class="footer-note">本サイトはプロモーション(広告・アフィリエイトリンク)を含みます。記事はAIが自動生成し、人間が監修しています。</p>
+    <p class="footer-note">本サイトはプロモーション(広告・アフィリエイトリンク)を含みます。</p>
     <nav class="footer-nav">
       <a href="./about.html">サイトについて</a>
       <a href="./privacy.html">プライバシーポリシー</a>
