@@ -118,6 +118,7 @@ ${body}
       <a href="./privacy.html">プライバシーポリシー</a>
       <a href="./contact.html">お問い合わせ</a>
       <a href="./feed.xml">RSS</a>
+      ${site.bluesky ? `<a rel="me" target="_blank" href="https://bsky.app/profile/${site.bluesky}">Bluesky</a>` : ''}
     </nav>
     <p class="copyright">© 2026 ${esc(site.title)}</p>
   </div>
