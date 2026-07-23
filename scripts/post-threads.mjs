@@ -2,6 +2,7 @@
 // 使い方: node scripts/post-threads.mjs articles/2026-07-23-daily.md
 // 認証情報は .secrets.json (gitignore済み・このPCにのみ保存) から読む。
 // 未設定なら何もせず正常終了する。トークンの延長(60日期限)は自動で行う。
+// スパム検知を避けるため投稿の間隔をあけるので、完走まで最大7分ほどかかる。
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +10,26 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SECRETS_PATH = join(ROOT, '.secrets.json');
 const API = 'https://graph.threads.net';
+
+// ---- bot判定を避けるための待ち時間 ----
+// 毎日同時刻に数秒間隔で連投する挙動はスパム検知に引っかかりやすいため、
+// 開始時刻と投稿間隔にゆらぎを持たせる。完走まで数分かかる。
+// 動作確認などで待ちたくないときは環境変数 THREADS_NO_DELAY=1 を付ける。
+const NO_DELAY = process.env.THREADS_NO_DELAY === '1';
+const START_JITTER = [0, 90_000];            // 開始前に 0〜90秒
+const BETWEEN_POSTS = [180_000, 300_000];    // 投稿と投稿の間に 3〜5分
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const rand = ([min, max]) => Math.floor(min + Math.random() * (max - min));
+
+// アカウント単位でAPIが止められている場合のエラー(スタックトレースを出さず正常終了する)
+const isBlocked = (e) => /API access blocked|temporarily blocked|rate limit/i.test(String(e?.message));
+const bailIfBlocked = (e) => {
+  if (!isBlocked(e)) throw e;
+  console.log('⚠️ ThreadsのAPIアクセスがMeta側でブロックされています。投稿をスキップしました。');
+  console.log('   https://developers.facebook.com/apps/ をブラウザで直接開き、アプリの警告と認証状況を確認してください。');
+  console.log(`   (詳細: ${e.message})`);
+  process.exit(0);
+};
 
 if (!existsSync(SECRETS_PATH)) {
   console.log('.secrets.json が無いためThreads投稿をスキップします');
@@ -66,14 +87,18 @@ async function ensureToken() {
   }
 }
 
-await ensureToken();
+try {
+  await ensureToken();
 
-// ユーザーIDを取得(初回のみAPIで解決してキャッシュ)
-if (!t.userId) {
-  const j = await get(`${API}/v1.0/me?fields=id,username&access_token=${t.token}`);
-  t.userId = j.id;
-  save();
-  console.log(`Threadsユーザー確認: @${j.username}`);
+  // ユーザーIDを取得(初回のみAPIで解決してキャッシュ)
+  if (!t.userId) {
+    const j = await get(`${API}/v1.0/me?fields=id,username&access_token=${t.token}`);
+    t.userId = j.id;
+    save();
+    console.log(`Threadsユーザー確認: @${j.username}`);
+  }
+} catch (e) {
+  bailIfBlocked(e);
 }
 
 // ---- 記事情報から投稿文を作る ----
@@ -115,23 +140,40 @@ const post = async (path, params) => {
   return j;
 };
 
-for (const p of posts) {
+if (!NO_DELAY) {
+  const wait = rand(START_JITTER);
+  if (wait > 0) {
+    console.log(`投稿時刻を毎日同じにしないため ${Math.round(wait / 1000)}秒 待機します`);
+    await sleep(wait);
+  }
+}
+
+for (const [i, p] of posts.entries()) {
+  if (i > 0 && !NO_DELAY) {
+    const wait = rand(BETWEEN_POSTS);
+    console.log(`連投を避けるため ${Math.round(wait / 60000)}分 待機します`);
+    await sleep(wait);
+  }
   let body = p.body.trim();
   if ([...body].length > 440) body = [...body].slice(0, 439).join('') + '…';
   const text = `${body}\n${url}`;
-  const container = await post(`${t.userId}/threads`, { media_type: 'TEXT', text });
-  let published;
   try {
-    published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
-  } catch {
-    await new Promise(res => setTimeout(res, 5000)); // 処理待ちで失敗することがあるため1回だけ再試行
-    published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
+    const container = await post(`${t.userId}/threads`, { media_type: 'TEXT', text });
+    let published;
+    try {
+      published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
+    } catch (e) {
+      if (isBlocked(e)) throw e;
+      await sleep(5000); // 処理待ちで失敗することがあるため1回だけ再試行
+      published = await post(`${t.userId}/threads_publish`, { creation_id: container.id });
+    }
+    try {
+      const info = await get(`${API}/v1.0/${published.id}?fields=permalink&access_token=${t.token}`);
+      console.log(`✅ Threadsに投稿しました(${p.lang}): ${info.permalink}`);
+    } catch {
+      console.log(`✅ Threadsに投稿しました(${p.lang}): media_id=${published.id}`);
+    }
+  } catch (e) {
+    bailIfBlocked(e);
   }
-  try {
-    const info = await get(`${API}/v1.0/${published.id}?fields=permalink&access_token=${t.token}`);
-    console.log(`✅ Threadsに投稿しました(${p.lang}): ${info.permalink}`);
-  } catch {
-    console.log(`✅ Threadsに投稿しました(${p.lang}): media_id=${published.id}`);
-  }
-  await new Promise(r => setTimeout(r, 3000));
 }
