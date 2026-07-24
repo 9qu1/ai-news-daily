@@ -252,6 +252,10 @@ ${urls.map(u => `  <url><loc>${u}</loc></url>`).join('\n')}
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(DIST, { recursive: true });
 copyFileSync(join(ROOT, 'src', 'styles.css'), join(DIST, 'styles.css'));
+// static/ 配下のファイルをそのままサイト直下へコピー(サイト所有権の検証ファイル等)
+try {
+  readdirSync(join(ROOT, 'static')).forEach(f => copyFileSync(join(ROOT, 'static', f), join(DIST, f)));
+} catch {}
 
 writeFileSync(join(DIST, 'index.html'), indexPage());
 writeFileSync(join(DIST, 'news.html'), listPage(articles.filter(a => a.category === 'news'), 'ニュース一覧', 'AIの最新ニュースを毎朝お届けしています。'));
