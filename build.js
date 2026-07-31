@@ -163,6 +163,7 @@ function articlePage(a, i) {
 ${a.html}
   </div>
   ${adSlot(ads.article_bottom)}
+  ${adSlot(ads.article_click)}
   <div class="share">
     <span>この記事をシェア:</span>
     <a rel="nofollow noopener" target="_blank" href="https://twitter.com/intent/tweet?text=${share}&url=${shareUrl}">X</a>
