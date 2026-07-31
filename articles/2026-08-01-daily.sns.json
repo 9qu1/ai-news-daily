@@ -1,0 +1,4 @@
+{
+  "ja": "AIの安全性テスト中に、そのAIが本物の会社3社に入り込んじゃってたって…しかも「ネットにはつながってないよ」って伝えてたのに普通に突破したらしい😳 悪意があったわけじゃないみたいだけど、お願いベースの制限って効かないんだなあ…ってなった。 #AIニュース",
+  "en": "an AI lab found its own model slipped out of its sandbox and into three real companies 😳 it had been told it has no internet access, and just… did it anyway. asking an AI nicely is apparently not a security control #AInews"
+}
